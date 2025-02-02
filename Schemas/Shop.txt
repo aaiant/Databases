@@ -1,0 +1,345 @@
+//  MRD (MODELING REDUNDANCY DESIGN): 
+
+Table phone_numbers {
+  id SERIAL [pk, increment]
+  firm_id INTEGER [ref: > firms.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  phone_number VARCHAR(17) [NOTE: "CHECK (LENGTH(phone_number) >= 10 AND phone_number SIMILAR TO '\\+([0-9]{2,3})[0-9]{3}-[0-9]{3}-[0-9]{3}')"]
+  indexes {
+    phone_number [unique]
+  }
+}
+
+Table countries {
+  id SERIAL [pk, increment]
+  name VARCHAR(20) [NOTE: "CHECK (LENGTH(name) > 3)"]
+  indexes {
+    name [unique]
+  }
+}
+
+Table cities {
+  id SERIAL [pk, increment]
+  country_id INTEGER [ref: > countries.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  name VARCHAR(20) [NOTE: "CHECK (LENGTH(name) > 3)"]
+  indexes {
+    (country_id, name) [unique]
+  }
+}
+
+Table neighborhoods {
+  id SERIAL [pk, increment]
+  city_id INTEGER [ref: > cities.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  name VARCHAR(20) [NOTE: "CHECK (LENGTH(name) > 3)"]
+  indexes {
+    (city_id, name) [unique]
+  }
+}
+
+Table streets {
+  id SERIAL [pk, increment]
+  neighborhood_id INTEGER [ref: > neighborhoods.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  name VARCHAR(20) [NOTE: "NOT NULL CHECK (LENGTH(name) > 3)"]
+  indexes {
+    (neighborhood_id, name) [unique]
+  }
+}
+
+Table buildings {
+  id SERIAL [pk, increment]
+  street_id INTEGER [ref: > streets.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  number INTEGER [NOTE: "NOT NULL CHECK(number > 1 AND number < 70)"]
+  indexes {
+    (street_id, number) [unique]
+  }
+}
+
+Table firms {
+  id SERIAL [pk, increment]
+  name VARCHAR(50) [NOTE: "NOT NULL CHECK (LENGTH(name) > 3)"]
+  email VARCHAR(40) [NOTE: "NOT NULL CHECK (LENGTH(email) > 13 AND email LIKE '%@gmail.com')"]
+  website_url VARCHAR(200) [NOTE: "NOT NULL CHECK(website-url LIKE 'https://%.com')"]
+  establishment_date TIMESTAMP [NOTE: "NOT NULL SET DEFAULT CURRENT_TIMESTAMP"]
+  office INTEGER [ref: > buildings.id, NOTE: "NOT NULL ON DELETE CASCADE"] 
+  type INTEGER [ref: > firm_categories.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  indexes {
+    email [unique]
+  }
+}
+
+Table firm_categories {
+  id SERIAL [pk, increment]
+  name VARCHAR(20) [NOTE: "NOT NULL CHECK (LENGTH(name) >= 5)"]
+  indexes {
+    name [unique]
+  }
+}
+
+Table warehouses {
+  id SERIAL [pk, increment]
+  establishment_date TIMESTAMP [NOTE: "NOT NULL SET DEFAULT CURRENT_TIMESTAMP"]
+  firm_id INTEGER [ref: > firms.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  building_id INTEGER [ref: > buildings.id, NOTE: "NOT NULL ON DELETE CASCACDE"]
+  indexes {
+    firm_id [unique]
+  }
+}
+
+Table stocks {
+  id SERIAL [pk, increment]
+  name VARCHAR(20) [NOTE: "NOT NULL CHECK (LENGTH(name) > 3)"]
+  establishment_date TIMESTAMP [NOTE: "NOT NULL SET DEFAULT CURRENT_TIMESTAMP"]
+  update_date TIMESTAMP [NOTE: "NOT NULL SET DEFAULT CURRENT_TIMESTAMP"]
+  warehouse_id INTEGER [ref: > warehouses.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  indexes {
+    (warehouse_id, name) [unique]
+  }
+}
+
+Table stocks_contents {
+  id SERIAL [pk, increment]
+  stock_id INTEGER [ref: > stocks.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  product_id INTEGER [ref: > products.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  quantity INTEGER [NOTE: "NOT NULL CHECK (QUANTITY > 0 AND QUANTITY <= 2000)"]
+  indexes {
+    (stock_id, product_id) [unique]
+  }
+}
+
+Table products_categories {
+  id SERIAL [pk, increment]
+  name VARCHAR(20) [NOTE: "NOT NULL CHECK (LENGTH(name) > 3)"]
+  indexes {
+    name [unique]
+  }
+}
+
+Table products {
+  id SEARIAL [pk, increment]
+  name VARHCAR(20) [NOTE: "NOT NULL CHECK (LENGTH(name) > 3)"]
+  UM VARCHAR(5) [NOTE: "NOT NULL CHECK (LENGTH(UM) > 1("]
+  price NUMERIC(6, 2) [NOTE: "NOT NULL CHECK(price > 0.5 AND price <= 40000.00"]
+  product_category_id INTEGER [ref: > products_categories.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  indexes {
+    (name, UM, product_category_id) [unique]
+  } 
+}
+
+Table invoices {
+  id SERIAL [pk, increment]
+  number INTEGER [NOTE: "NOT NULL CHECK(number > 0 AND number < 1000"]
+  date_time_of_issue TIMESTAMP [NOTE: "NOT NULL SET DEFAULT CURRENT_TIMESTAMP"]
+  seller INTEGER [ref: > firms.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  buyer INTEGER [ref: > firms.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  indexes {
+    number [unique]
+  }
+  NOTE: "CHECK (seller <> buyer)"
+}
+
+Table invoices_contents {
+  id SERIAL [pk, increment]
+  invoice_id INTEGER [ref: > invoices.id, NOTE: "NOT NULL ON DEELTE CASCADE"] 
+  product_id INTEGER [ref: > products.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  quantity INTEGER [NOTE: "NOT NULL CHECK(quantity > 0)"]
+  indexes {
+    (invoice_id, product_id) [unique]
+  }
+}
+
+Table stocks_invoices {
+  id SERIAL [pk, increment]
+  invoice_content_id INTEGER [REF: > invoices_contents.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  stock_id INTEGER [REF: > stocks.id, NOTE: "NOT NULL ON DELETE CASCADE"]
+  indexes {
+    (invoice_content_id, stock_id) [unique]
+  }
+}
+
+//  THE END OF MRD 
+
+/*
+  The names of relationships:
+  ---------------------------
+
+  RELATIONSHIP NAME FOR: Countries -> Cities = Country_City_Belonging
+  RELATIONSHIP NAME FOR: Cities -> Neighborhoods = City_Neighborhood_Belonging
+  RELATIONSHIP NAME FOR: Neighborhoods -> Streets = Neighborhood_Street_Belonging
+  RELATIONSHIP NAME FOR: Streets -> Buildings = Street_Building_Belonging
+  RELATIONSHIP NAME FOR: Stocks-> Warehouses = Stock_Warehouse_Belonging
+
+  RELATIONSHIP NAME FOR: Buildings -> Firms = Building_Firm_Ownership
+  RELATIONSHIP NAME FOR: Firms-> Warehouses = Firm_Warehouse_Ownership
+
+  RELATIONSHIP NAME FOR: Warehouses -> Buildings = Warehouse_Building_Assignment
+
+  RELATIONSHIP NAME FOR: Firm_categories-> Firms = Firm_Grouping
+  RELATIONSHIP NAME FOR: Products_categories-> Products = Products_Grouping
+
+  RELATIONSHIP NAME FOR: Firms-> Phone_numbers = Contact
+
+  RELATIONSHIP NAME FOR: Firms-> Invoices = Billing
+
+  RELATIONSHIP NAME FOR: Stocks-> Stocks_contents =  Stock_Inventory
+
+  RELATIONSHIP NAME FOR: Invoices-> Invoices_contents = Invoice_Details
+  RELATIONSHIP NAME FOR: Products-> Stocks_contents = Stock_Inventory_Details
+  RELATIONSHIP NAME FOR: Products-> Invoices_contents = Invoice_Product_Details
+
+  RELATIONSHIP NAME FOR: Stocks-> Stocks_Invoices = Invoice_Stock_Details
+  RELATIONSHIP NAME FOR: Invoices_contents-> Stocks_Invoices = Invoice_Stock_Content_Details
+*/
+Note data_dictionary {
+  '''
+    Glossary of terms:
+      Term            Description           Synonymous        Reference 
+      ----------------------------------------------------------------------
+      Countries
+      Cities
+      Neighborhoods
+      Streets
+      Buildings
+      Firm_categories
+      Firms
+      Stocks
+      Stocks_contents
+      Warehouses
+      Products
+      Products_categories
+      Invoices
+      Invoices_contents
+
+    Data dictionary:
+      Entity:
+        Entity                                                Description                                                                                Attributes        Semantic Key
+        -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        Phone_numbers               The method by which a firm can be contacted.                                                                           firm_id          phone_number
+                                                                                                                                                        phone_number
+        
+        Countries                   A specific area on the globe with a unique name, in which there are                                                     name                  name
+                                    several cities, neighborhoods, streets and in which the building of                                                 
+                                              the firm is located.                                                                        
+
+        Cities                     A neighborhood is an area of ​​a city that contains streets and where 
+                                              business buildings are located                                                                                name                 name      
+
+        Neighborhoods              The area where the building of company is located.                                                                     city_id             city_id
+                                                                                                                                                            name                name
+
+        Streets                   The place with several buildings during a path, all having unique number
+                                           by which they can be identified.                                                                           neighborhoods_id     neighborhood_id
+                                                                                                                                                          number              number
+
+        Buildings                 It shows the HQ number from the street it belongs to.                                                                 street_id            street_id
+                                                                                                                                                          number              number
+
+        Firm_categories           It specifies the type of the firm(supplier, a simple shop).                                                               name                  name
+
+        Firms                     It represents the company that is located in a certain country, city, street                                                 name                 email
+                                  and that has its HQ in a certain building with a number. It has a stock of                                               email
+                                  products that it can sell to other companies (stores) through an invoice.                                                   website_url
+                                                                                                                                                      establishment_date
+                                                                                                                                                          office
+                                                                                                                                                           type
+
+        Stocks                    It represents the total quantity for a certain product that the firm                                                      name                 name
+                                                     has in its own warehouse.                                                                          warehouse_id         warehouse_id
+                                                                                                                                                    establishment_date
+                                                                                                                                                        update_date
+
+        Stocks_contents            It explicily shows which product is in the respective stock.                                                           stock_id             product_id      
+                                                                                                                                                        product_id             stock_id
+                                                                                                                                                         quantity
+
+        Warehouses                It represents the area where the stocks of products own by the firm                                                   firm_id                 firm_id
+                                                       are located.                                                                                   building_nr_id
+                                                                                                                                                    establishment_date
+
+        Products                  It is a good that is in the supplier's stock in a warehouse and that can                                                name                    name
+                                  be transported to the store's warehouse to be in its stock by means of a                                                 UM                      UM
+                                                          contract.                                                                                       price             product_category_id
+                                                                                                                                                    product_category_id
+
+        Products_categories        It defines the type of goods in the firm's stock such as dairy, cold cuts,                                               name                    name
+                                                    backed goods, spices and sauces.
+                                                            
+
+        Invoices                  It is the document through which the exchange of products from one stock                                                number                  number
+                                  to the another is carried out, from the supplier's warehouse to the store                                         date_time_of_issue
+                                                                warehouse.                                                                                seller
+                                                                                                                                                          buyer
+
+        Invoices_contents          It is the document attached to the invoice, which specifies the products                                             invoice_id                invoice_id
+                                  supplied, the stocks they come from and especially the price of each                                                  stock_id                  product_id
+                                                            individual good.                                                                           product_id
+                                                                                                                                                        quantity
+
+        Stocks_invoices           This  links invoice content to the stock from which the products                                                invoice_content_id         invoice_content_id
+                                  are sourced, ensuring that products can be transferred between firms.                                                 stock_id                  stock_id
+                                  
+
+    Relationships:    
+      Relationship                        Description                                                     Entities & Cardinality              Attributes
+      ---------------------------------------------------------------------------------------------------------------------------------------------------
+      
+      Country_City_Belonging                  It indicates that several cities are within a country.         Countries <-> Cities                      -
+                                                                                                        N(1) <-> N(n)
+
+      City_Neighborhood_Belonging             It indicates that several areas (neighborhoods)             Cities <-> Neighborhoods                  -
+                                                      exists within a city.                             N(1) <-> N(n)
+
+      Neighborhood_Street_Belonging           It indicates that there are several streets                 Neighborhoods <-> Steets                  -
+                                                      within a neighborhood.                            N(1) <-> N(n)
+
+      Street_Building_Belonging               On a street there are several buildings that                Streets <-> Buldings                      -
+                                                      have a unique number.                             N(1)  <-> N(n)
+
+      Stock_Warehouse_Belonging               The action by which a warehouse contains                    Warehouses <-> Stocks                     -
+                                                several stocks of products.                             N(1) <-> N(n)
+
+      Building_Firm_Ownership                 A firm can own only one building (its HQ) that                    Firms <-> Buildings                       -
+                                              is located on a street and that has a unique                  N(1) <-> N(1)
+                                                    number within it.
+
+      Firm_Warehouse_Ownershi                 A firm can own only one warehouse that                   Firms <-> Warehouses                         -
+                                              is located on a street and that has a unique                  N(1) <-> N(1)
+                                                    number within it.
+
+      Firm_Grouping                           The process by which a firm is assigned                   Firm_categories <-> Firms                   -
+                                                    a single type (supplier, store).                               N(1) <-> N(n)
+      
+      Products_Grouping                       The process by which a product is assigned                Products_categories <-> Products            -
+                                              a type (dairy products, cold cuts, backed                          N(1) <-> N(n)
+                                              goods, sprices and sauces, etc)
+
+      Contact                                 The process by which a firm can be contacted              Firms <-> Phone_numbers                     -
+                                                      by firm.                                              N(1) <-> N(1)
+
+      Stock_Inventory                         It represents the products that are part of the           Stocks <-> Stock_contents                   -
+                                              stock and its quantity.                                       N(1) <-> N(n)
+
+      Invoice_Details                         It constitutes the process by which all products          Invoices <-> Invoice_contents               -
+                                              ordered from a firm's (supplier's) stock and                  N(1) <-> N(1)
+                                              their quantity are explicitly mentioned.                                  
+      
+      Billing                                 It represents the method by which the products                                                        -
+                                              are sold from one firm's stock (supplier's 
+                                              stock) to another firm's stock (store's stock).
+
+      Warehouse_Building_Assignment           A warehouse owned by a firm is assigned a                 Warehouses <-> Buildings                    -
+                                              building located at a certain address.                        N(1) <-> N(1)
+
+      Invoice_Product_Details                 The content of an invoice consist of several              Invoice_contents <-> Products               -
+                                              products that are part of a firm's stock.                     N(1) <-> N(n)                             
+
+      Stock_Inventory_Details                 The content of a stock in a warehouse consists            Stocks_contents <-> Products                - 
+                                              of several products.                                          N(1) <-> N(n)
+
+      Invoice_Stock_Details                   It ensures that an invoice content is assigned            Invoices_contents <-> Stocks_Invoices       -            
+                                              the stocks from which the mentioned products come.            N(1) <-> N(n)
+
+      Invoice_Stock_Content_Details           It links multiple stocks, each containing different       Stocks <-> Stocks_Invoices                  -
+                                              products, to a specific invoice content.                      N(1) <-> N(n)
+                                              
+  '''
+}
+
